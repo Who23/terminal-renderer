@@ -3,6 +3,14 @@
 // https://www.a1k0n.net/2011/07/20/donut-math.html
 // https://www.cse.psu.edu/~rtc12/CSE486/lecture12.pdf
 
+mod color;
+mod linear_algebra;
+mod triangle;
+
+use color::Color;
+use linear_algebra::*;
+use triangle::Triangle;
+
 use std::{
     f64::consts::{PI, SQRT_2},
     io::{stdout, BufWriter, StdoutLock, Write},
@@ -11,60 +19,6 @@ use termion::{self, terminal_size};
 
 const THETA: f64 = (2.0 * PI) / 480.0;
 const BRIGHTNESS_CHARS: [u8; 9] = *b".:-=+*#%@";
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Color {
-    Red,
-    Green,
-    Blue,
-    Magenta,
-    Cyan,
-    Yellow,
-    None,
-}
-
-#[derive(Debug)]
-struct Triangle {
-    points: [[f64; 3]; 3],
-    color: Color,
-}
-
-impl Triangle {
-    fn new(point1: [f64; 3], point2: [f64; 3], point3: [f64; 3], color: Color) -> Self {
-        Self {
-            points: [point1, point2, point3],
-            color,
-        }
-    }
-    fn camera_coords(&self, w_to_c: &[[f64; 4]; 4]) -> [[f64; 3]; 3] {
-        let mut camera_coords = [[0.0; 3]; 3];
-
-        for (i, point) in (&self.points).iter().enumerate() {
-            camera_coords[i] = multiply_4_by_3(&point, &w_to_c);
-            camera_coords[i][2] *= -1.0;
-        }
-
-        camera_coords
-    }
-    fn project(&self, camera_coords: &[[f64; 3]; 3], k1: f64) -> [[f64; 2]; 3] {
-        let mut projected = [[0.0; 2]; 3];
-        for (i, point) in (&camera_coords).iter().enumerate() {
-            projected[i][0] = (k1 * point[0]) / (point[2]);
-            projected[i][1] = (k1 * point[1]) / (point[2]);
-        }
-
-        projected
-    }
-    fn apply_transformation(&mut self, matrix: &[[f64; 3]; 3]) {
-        for point in &mut self.points {
-            *point = [
-                matrix[0][0] * point[0] + matrix[0][1] * point[1] + matrix[0][2] * point[2],
-                matrix[1][0] * point[0] + matrix[1][1] * point[1] + matrix[1][2] * point[2],
-                matrix[2][0] * point[0] + matrix[2][1] * point[1] + matrix[2][2] * point[2],
-            ]
-        }
-    }
-}
 
 fn main() {
     let r_x: [[f64; 3]; 3] = [
@@ -294,58 +248,6 @@ fn main() {
 
 fn edge(a: &[f64; 2], b: &[f64; 2], c: &[f64; 2]) -> f64 {
     (c[0] - a[0]) * (b[1] - a[1]) - (c[1] - a[1]) * (b[0] - a[0])
-}
-
-fn cross(a: &[f64; 3], b: &[f64; 3]) -> [f64; 3] {
-    /*
-    i j k
-    x y z
-    a b c
-
-    (yc - bz)i - (xc - az)j + (xb - ay)k
-    x = a[0]
-    y = a[1]
-    z = a[2]
-    a = b[0]
-    b = b[1]
-    c = b[2]
-    */
-
-    [
-        (a[1] * b[2] - b[1] * a[2]),
-        -1.0 * (a[0] * b[2] - b[0] * a[2]),
-        (a[0] * b[1] - a[1] * b[0]),
-    ]
-}
-
-fn dot(a: &[f64; 3], b: &[f64; 3]) -> f64 {
-    a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
-}
-
-fn normalize(a: &[f64; 3]) -> [f64; 3] {
-    let mag = (a[0].powi(2) + a[1].powi(2) + a[2].powi(2)).sqrt();
-    [a[0] / mag, a[1] / mag, a[2] / mag]
-}
-
-fn multiply_4_by_3(vector: &[f64; 3], matrix: &[[f64; 4]; 4]) -> [f64; 3] {
-    [
-        matrix[0][0] * vector[0]
-            + matrix[0][1] * vector[1]
-            + matrix[0][2] * vector[2]
-            + matrix[0][3] * 1.0,
-        matrix[1][0] * vector[0]
-            + matrix[1][1] * vector[1]
-            + matrix[1][2] * vector[2]
-            + matrix[1][3] * 1.0,
-        matrix[2][0] * vector[0]
-            + matrix[2][1] * vector[1]
-            + matrix[2][2] * vector[2]
-            + matrix[2][3] * 1.0,
-        // matrix[3][0] * vector[0]
-        //     + matrix[3][1] * vector[1]
-        //     + matrix[3][2] * vector[2]
-        //     + matrix[3][3] * 1.0,
-    ]
 }
 
 // 0 1 p
